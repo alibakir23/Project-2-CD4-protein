@@ -1,4 +1,4 @@
-# Project-2-CD4-protein
+# Project 2 : HIV protein envelope & CD4-protein
 
 ## Scientific Question:
 
