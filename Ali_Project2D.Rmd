@@ -1,0 +1,269 @@
+---
+title: "Project 2D: CD4 protein"
+author: "Ali Bakir"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+---
+
+## Introduction
+
+### Scientific Question:
+
+Does the HIV protein envelope binds to primary cellular receptor CD4 protein of any organism other than human and causes infection? 
+
+### Hypothesis:
+
+If we found high similarity between human CD4 glycoprotein and other organism's CD4 protein then, HIV virus can binds to those proteins and potentially initiates infection similar to human? 
+
+### Background: 
+
+HIV (human immunodeficiency virus)
+
+This virus attacks the body’s immune system and weakens it by destroying cells that fight disease and infection. If left untreated, it can lead to AIDS. AIDS stands for acquired immunodeficiency syndrome. No effective cure is currently present for it but it can be controlled with adequate medical care. [1,2]
+
+To deliver its genome into the cytoplasm of host cell and simultaneously evade the immune response of host, HIV utilizes complex and multiple series of steps. HIV protein envelope (Env) binds to the main cellular receptor CD4 protein and subsequently to a cellular co-receptor in order to infect the host cell. [3,4] CD4 protein is a membrane glycoprotein. It is also a member of the immunoglobulin supergene family. [5] CD4+ T cells are the primary targets of HIV-1 infection. [6]
+
+1. https://www.cdc.gov/hiv/basics/whatishiv.html
+2. https://www.cdc.gov/hiv/basics/index.html
+3. Wilen CB, Tilton JC, Doms RW. HIV: cell binding and entry. Cold Spring Harb Perspect Med. 2012;2(8):a006866. Published 2012 Aug 1. doi:10.1101/cshperspect.a006866
+4. Checkley MA, Luttge BG, Freed EO. HIV-1 envelope glycoprotein biosynthesis, trafficking, and incorporation. J Mol Biol. 2011;410(4):582-608. doi:10.1016/j.jmb.2011.04.042
+5. Faramarz Naeim, Chapter 2 - Principles of Immunophenotyping, Hematopathology, Academic Press, 2008, 27-55, https://doi.org/10.1016/B978-0-12-370607-2.00002-8.
+6. Rachel Presti, Giuseppe Pantaleo, 92 - The Immunopathogenesis of HIV-1 Infection, Infectious Diseases (Fourth Edition), Elsevier, 2017, 837-845.e3, doi.org/10.1016/B978-0-7020-6285-8.00092-7.
+ 
+### Description:
+
+In this bioinformatics analysis I performed various alignment methods including pairwise alignment using Biostrings library function, multiple sequence alignment using msa library function and BLAST analysis using bio3d library functions. The alignment describes how the sequences and structures are similar to each other. 
+
+Further I used residue identification, 3D structural analysis and visualization of all the 5 structures of selected proteins. 3 out of 5 proteins didn't have their structure calculated but they were available via Alphafold predicted structure. I used them as well in the analysis and compared. 
+
+## Package Descriptions
+
+```{r loading }
+
+# To read the FASTA sequence data and perform pairwise alignment
+library(Biostrings) 
+
+# To perform multiple sequence alignment 
+library(msa) 
+
+library(bio3d)
+
+# To visualize protein structure
+library(NGLVieweR)
+
+# To draw clustered heatmap.
+library(pheatmap)
+
+
+```
+
+## Performing Bioinformatics Analyses and Plotting the results
+
+Import CD4 sequences of 5 different organisms from UniProt.
+
+```{r}
+
+# CD4_uniprot is an AAStringSet variable.
+CD4_uniprot <- readAAStringSet("CD4_5Org_uniprot.fasta")
+
+# to check datatype
+typeof(CD4_uniprot)
+
+length(CD4_uniprot)
+
+```
+
+### Perform Pairwise Sequence Alignment and generate a heatmap
+
+```{r}
+# Defining a function used later for pairwise alignment
+pairwise_score_matrix <- function(sequences) {
+
+  # Store length/no. of sequences in x
+  x <- length(sequences)
+  seq_length <- 1:x
+  forheatmap <- matrix(nrow=x, ncol=x)
+  
+  for (i in seq_length) {
+    for (j in seq_length){
+      # define the variables for each sequence from the sequence alignment
+      string1 <- sequences[i]
+      string2 <- sequences[j]
+    
+      # Turn the string1 variable into a character string
+      dsl = AAStringSetList(string1)
+      as.character(unlist(dsl))
+      cl = as(dsl, "CharacterList")
+      as.list(cl)
+      
+      # Turn the string2 variable into a character string
+      dsl2 = AAStringSetList(string2)
+      as.character(unlist(dsl2))
+      cl2 = as(dsl2, "CharacterList")
+      as.list(cl2)
+    
+      # Perform a pairwise sequence alignment for the two strings
+      pa <- pairwiseAlignment(pattern = c(cl2), subject = cl)
+    
+      # Assign the score from the pairwise sequence alignment to the matrix
+      forheatmap[i,j] <- score(pa)
+    }
+  }
+  # Set names for matrix
+  colnames(forheatmap) <- substr(names(sequences), 4,9)
+  rownames(forheatmap) <- substr(names(sequences), 4,9)
+
+  # Return the generated score matrix 
+  return(forheatmap)
+}
+
+scores <- pairwise_score_matrix(CD4_uniprot)
+
+pheatmap(scores, cluster_rows = FALSE, cluster_cols = FALSE) # A function to draw clustered heatmaps.
+
+
+```
+
+### Performing MSA
+
+```{r}
+MSA.CD4 <- msa(CD4_uniprot)
+
+print(MSA.CD4, show="complete")
+
+msaPrettyPrint(MSA.CD4, output="asis", showNames="left", showLogo="top",
+logoColors="rasmol", shadingMode="functional", shadingModeArg="structure",
+verbose = TRUE, showLegend=TRUE, askForOverwrite = FALSE)
+
+```
+ 
+### Visualizing the 3D structure and performing structural bioinformatics analysis and 3D measurements.
+
+#### Identification of residue in binding sites using bio3d
+
+```{r }
+# 1CID
+
+# Read in the pdb
+pdb.1CID <- read.pdb('1CID')
+
+## Automatically identify what is the protein and what is the ligand
+bs <- binding.site(pdb.1CID)
+
+# Print the residues & save the resnumbers to a vector for later use
+bs_resnumbers <- bs$resno
+
+bs$resnames
+```
+
+### Blast analysis
+
+Following is the code with single BLAST analysis of Human CD4 protein. Uncomment all lines when running locally and required complete results. 
+
+```{r eval=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+# Read PDB files from server.
+pdb_1CDH <- read.pdb2('1CDH')
+# pdb_1CID <- read.pdb2('1CID')
+# pdb_P16004 <- read.pdb("AF-P16004-F1-model_v2.pdb")
+# pdb_P06332 <- read.pdb("AF-P06332-F1-model_v2.pdb")
+# pdb_P33705 <- read.pdb("AF-P33705-F1-model_v2.pdb")
+
+
+# Perform BLAST analysis on all three PDB structure sequences.
+blast_1CDH <- blast.pdb( pdbseq(pdb_1CDH) )
+# blast_1CID <- blast.pdb( pdbseq(pdb_1CID) )
+# blast_P16004 <- blast.pdb( pdbseq(pdb_P16004) )
+# blast_P06332 <- blast.pdb( pdbseq(pdb_P06332) )
+# blast_P33705 <- blast.pdb( pdbseq(pdb_P33705) )
+
+# View top hits from result table
+head(blast_1CDH$hit.tbl)
+# head(blast_1CID$hit.tbl)
+# head(blast_P16004$hit.tbl)
+# head(blast_P06332$hit.tbl)
+# head(blast_P33705$hit.tbl)
+
+# Plot the result
+top.hits_1CDH <- plot(blast_1CDH, main = "1CDH", cex = 1)
+# top.hits_1CID <- plot(blast_1CID, main = "1CID", cex = 1)
+# top.hits_P16004 <- plot(blast_P16004, main = "P16004", cex = 1)
+# top.hits_P06332 <- plot(blast_P06332, main = "P06332", cex = 1)
+# top.hits_P33705 <- plot(blast_P33705, main = "1L56", cex = 1)
+
+# View top hits
+head(top.hits_1CDH$hits)
+# head(top.hits_1CID$hits)
+# head(top.hits_P16004$hits)
+# head(top.hits_P06332$hits)
+# head(top.hits_P33705$hits)
+```
+
+
+#### 3D visualization of protein structures.
+
+```{r message=FALSE, warning=FALSE}
+# P01730  Human 1CDH
+NGLVieweR("1CDH") %>%
+  stageParameters(backgroundColor = "black") %>%
+  setQuality("high") %>%
+  addRepresentation("cartoon", param = list(name = "cartoon",
+                                            colorScheme = "residueindex",
+                                            showBackground = TRUE,
+                                            labelType = "res"))
+
+# P16004 CD4_PANTR AF-P16004-F1-model_v2
+NGLVieweR("AF-P16004-F1-model_v2.pdb") %>%
+  stageParameters(backgroundColor = "black") %>%
+  setQuality("high") %>%
+  addRepresentation("cartoon", param = list(name = "cartoon",
+                                            colorScheme = "residueindex",
+                                            showBackground = TRUE,
+                                            labelType = "res"))
+
+
+# P06332 CD4_MOUSE AF-P06332-F1-model_v2  
+NGLVieweR("AF-P06332-F1-model_v2.pdb") %>%
+  stageParameters(backgroundColor = "black") %>%
+  setQuality("high") %>%
+  addRepresentation("cartoon", param = list(name = "cartoon",
+                                            colorScheme = "residueindex",
+                                            showBackground = TRUE,
+                                            labelType = "res"))
+
+# RAT P05540 1CID
+NGLVieweR("1CID") %>%
+  stageParameters(backgroundColor = "black") %>%
+  setQuality("high") %>%
+  addRepresentation("cartoon", param = list(name = "cartoon",
+                                            colorScheme = "residueindex",
+                                            showBackground = TRUE,
+                                            labelType = "res"))
+                    
+# P33705  CD4_CANLF  AF-P33705-F1-model_v2
+NGLVieweR("AF-P33705-F1-model_v2.pdb") %>%
+  stageParameters(backgroundColor = "black") %>%
+  setQuality("high") %>%
+  addRepresentation("cartoon", param = list(name = "cartoon",
+                                            colorScheme = "residueindex",
+                                            showBackground = TRUE,
+                                            labelType = "res"))
+
+
+
+
+```
+
+## Analysis of Results
+
+1. The heatmap of pairwise alignment, MSA and other results indicate that HUMAN (P01730) CD4 protein has a highest similarity with Pan troglodytes (P16004) (Chimpanzee) CD4 protein. I manually performed BLAST analysis on NCBI and it validates my results. This is followed by a high similarity score between RAT (P05540) and MOUSE (P06332). Using the pheatmap library function, we can also clearly observe the lowest pairwise alignment score between RAT (P05540) and CANLF (P33705) (Dog). All result makes sense considering evolutionary relationships (closer/farther in species) between these organism. 
+
+2. The result of MSA (multiple sequence alignment) also confirms above findings. HUMAN is ordered in 1st position with 2nd position as Pan troglodytes indicating similarity in sequences. Third is occupied by CANLF (Dog) and fourth and fifth position by RAT and MOUSE respectively. This also validates pairwise sequence results.
+
+3. CD4 proteins structure of all organism were also explored. Out of 5 organisms only 2 had validated structure present in PDB database. For the remaining 3 organism, only predicted structures were present provided by AlphaFold. Predicted structure by nature have accuracy measure. Although for initial comparison and study all structures can be used but for any detailed quantitative and qualitative analysis the accuracy measures of predicted structures should also be taken in account.
+
+Finally, all results suggest that out of 4 organisms, Pan troglodytes (Chimpanzee) are as much suceptible to HIV virus as humans. 
+
