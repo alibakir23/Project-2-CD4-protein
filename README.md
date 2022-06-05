@@ -16,8 +16,8 @@ Further I used residue identification, 3D structural analysis and visualization 
 
 ## File description
 
-#### Ali_Project2C.Rmd 
-This is the main R notebook containing all code for this analysis. Running this file will produce a HTML file similar to "Ali_Project2C.html". 
+#### Ali_Project2D.Rmd 
+This is the main R notebook containing all code for this analysis. Running this file will produce a HTML file similar to "Ali_Project2D.html". 
 
 #### CD4_5Org_uniprot.fasta
 This a FASTA format file containing CD4 protein sequences from 5 different organism (Human, RAT, PANTR, MOUSE, and CANLF) . This will be required for running above R notebook.
